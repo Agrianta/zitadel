@@ -91,21 +91,8 @@ export function PasswordForm({ loginSettings, loginName, organization, defaultOr
       return;
     }
 
+    // Show success message — user will receive an email with a direct link
     setInfo(t("verify.info.passwordResetSent"));
-
-    const params = new URLSearchParams({
-      loginName: loginName,
-    });
-
-    if (organization) {
-      params.append("organization", organization);
-    }
-
-    if (requestId) {
-      params.append("requestId", requestId);
-    }
-
-    return router.push("/password/set?" + params);
   }
 
   return (

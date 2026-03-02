@@ -8,7 +8,6 @@ import {
   getSession,
   getUserByID,
   listAuthenticationMethodTypes,
-  passwordReset,
   searchUsers,
   setPassword,
   setUserPassword,
@@ -29,7 +28,6 @@ import {
   checkPasswordChangeRequired,
   checkUserVerification,
 } from "../verify-helper";
-import { getPublicHostWithProtocol } from "./host";
 
 type ResetPasswordCommand = {
   loginName: string;
@@ -39,84 +37,32 @@ type ResetPasswordCommand = {
 };
 
 export async function resetPassword(command: ResetPasswordCommand) {
-  const _headers = await headers();
-  const { serviceConfig } = getServiceConfig(_headers);
-
   const t = await getTranslations("password");
 
-  // Get the original host that the user sees with protocol
-  const hostWithProtocol = await getPublicHostWithProtocol(_headers);
-
-  const loginSettings = await getLoginSettings({
-    serviceConfig,
-    organization: command.organization ?? command.defaultOrganization,
-  });
-
-  if (!loginSettings) {
+  const agriantaApiUrl = process.env.AGRIANTA_API_URL;
+  if (!agriantaApiUrl) {
     return { error: t("errors.couldNotSendResetLink") };
   }
 
-  const searchResult = await searchUsers({
-    serviceConfig,
-    searchValue: command.loginName,
-    organizationId: command.organization,
-    loginSettings,
-  });
+  try {
+    const response = await fetch(
+      `${agriantaApiUrl}/auth/request-password-reset`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loginName: command.loginName }),
+      },
+    );
 
-  if (
-    !searchResult ||
-    !("result" in searchResult) ||
-    !searchResult.result ||
-    searchResult.result.length !== 1 ||
-    !searchResult.result[0].userId
-  ) {
-    if (loginSettings?.ignoreUnknownUsernames) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      return {};
+    if (!response.ok) {
+      return { error: t("errors.couldNotSendResetLink") };
     }
+
+    // API always returns success (anti-enumeration)
+    return {};
+  } catch {
     return { error: t("errors.couldNotSendResetLink") };
   }
-  const user = searchResult.result[0];
-  const humanUser = user.type.case === "human" ? user.type.value : undefined;
-
-  const userLoginSettings = await getLoginSettings({ serviceConfig, organization: user.details?.resourceOwner });
-
-  if (userLoginSettings?.disableLoginWithEmail && userLoginSettings?.disableLoginWithPhone) {
-    if (user.preferredLoginName !== command.loginName) {
-      if (userLoginSettings?.ignoreUnknownUsernames) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        return {};
-      }
-      return { error: t("errors.couldNotSendResetLink") };
-    }
-  } else if (userLoginSettings?.disableLoginWithEmail) {
-    if (user.preferredLoginName !== command.loginName && humanUser?.phone?.phone !== command.loginName) {
-      if (userLoginSettings?.ignoreUnknownUsernames) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        return {};
-      }
-      return { error: t("errors.couldNotSendResetLink") };
-    }
-  } else if (userLoginSettings?.disableLoginWithPhone) {
-    if (user.preferredLoginName !== command.loginName && humanUser?.email?.email !== command.loginName) {
-      if (userLoginSettings?.ignoreUnknownUsernames) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        return {};
-      }
-      return { error: t("errors.couldNotSendResetLink") };
-    }
-  }
-
-  const userId = user.userId;
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-
-  return passwordReset({
-    serviceConfig,
-    userId,
-    urlTemplate:
-      `${hostWithProtocol}${basePath}/password/set?code={{.Code}}&userId={{.UserID}}&organization={{.OrgID}}` +
-      (command.requestId ? `&requestId=${command.requestId}` : ""),
-  });
 }
 
 export type UpdateSessionCommand = {

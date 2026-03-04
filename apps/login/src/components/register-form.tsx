@@ -145,6 +145,7 @@ export function RegisterForm({
             <TextInput
               type="email"
               autoComplete="email"
+              autoCapitalize="none"
               required
               {...register("email", { required: t("required.email") })}
               onChange={(e) => {

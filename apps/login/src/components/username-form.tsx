@@ -101,6 +101,7 @@ export function UsernameForm({
           <TextInput
             type="text"
             autoComplete="username"
+            autoCapitalize="none"
             autoFocus
             {...register("loginName", { required: t("required.loginName") })}
             onChange={(e) => {

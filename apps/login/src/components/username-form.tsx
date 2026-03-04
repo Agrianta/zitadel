@@ -60,7 +60,7 @@ export function UsernameForm({
 
     try {
       const res = await sendLoginname({
-        loginName: values.loginName,
+        loginName: values.loginName.toLowerCase(),
         organization,
         defaultOrganization,
         requestId,
@@ -103,6 +103,10 @@ export function UsernameForm({
             autoComplete="username"
             autoFocus
             {...register("loginName", { required: t("required.loginName") })}
+            onChange={(e) => {
+              e.target.value = e.target.value.toLowerCase();
+              register("loginName").onChange(e);
+            }}
             label={inputLabel}
             data-testid="username-text-input"
             suffix={suffix}

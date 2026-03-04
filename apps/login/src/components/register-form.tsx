@@ -69,7 +69,7 @@ export function RegisterForm({
     setLoading(true);
     try {
       const response = await registerUser({
-        email: values.email,
+        email: values.email.toLowerCase(),
         firstName: values.firstname,
         lastName: values.lastname,
         organization: organization,
@@ -145,8 +145,13 @@ export function RegisterForm({
             <TextInput
               type="email"
               autoComplete="email"
+              autoCapitalize="none"
               required
               {...register("email", { required: t("required.email") })}
+              onChange={(e) => {
+                e.target.value = e.target.value.toLowerCase();
+                register("email").onChange(e);
+              }}
               label={t("labels.email")}
               error={errors.email?.message as string}
               data-testid="email-text-input"
